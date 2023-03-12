@@ -103,7 +103,7 @@ In real Lua, you can write
 	end
 
 	function Vehicle.speed_up(self, by)
-		self.speed = this.speed + by
+		self.speed = self.speed + by
 	end
 
 	-- this is a syntax sugar, and is equivalent of writing function Vehicle.stop(self)
@@ -111,9 +111,11 @@ In real Lua, you can write
 		self.speed = 0
 	end
 	
+	Car = setmetatable({}, { __index = Vehicle })
+	
 	function Car:new(initial_speed)
 		local obj = { speed = initial_speed }
-	  	setmetatable(obj, { __index = Vehicle })
+	  	setmetatable(obj, { __index = Car })
 		return obj
 	end
 
@@ -125,13 +127,13 @@ In real Lua, you can write
 		end
 	end
 
-	local v = Vehicle.new(50)
+	local v = Vehicle:new(50)
 	v.speed_up(v, 60) -- or you can write v:speed_up(60)
 	print(v.speed) -- 110
 	v:stop()
 	print(v.speed) -- 0
 
-	local c = Car.new(50)
+	local c = Car:new(50)
 	c:speed_up(60)
 	print(c.speed) -- 100
 	c:stop()
@@ -142,7 +144,7 @@ In real Lua, you can write
 Two points to note:
 
 - Constructtion of a new object and inheritance are achieved via `setmetatable`. metatable is a normal table with special keys that are hooked up to events. In this case, `__index` is triggered whenever the caller tries to look up some key that does not exist in the table. This works exactly like prototype-based inheritance in JavaScript.
-- The syntax `Table:method(a, b, c)` is a syntax sugar. When defining a method, it is equivalent to `Table.method(self, a, b, c)`, when you call the method, it is equivalent to `table.method(table, a, b, c)`. Essentially, you are passing the table as a parameter in function.
+- The syntax `Table:method(a, b, c)` is a syntax sugar. When defining a method, it is equivalent to `Table.method(self, a, b, c)`, when you call the method, it is equivalent to `Table.method(Table, a, b, c)`. Essentially, you are passing the table as a parameter in function.
 
 ## Closure
 
@@ -152,10 +154,11 @@ Closure in Lua is very similar to JavaScript, but the concept of closure is not 
 		local speed = 50
 		return function()
 			speed = speed + 10
+			return speed
 		end
 	end
 
-	su = speed_up
+	su = speed_up()
 	print(su()) -- 60
 	print(su()) -- 70
 
@@ -171,12 +174,12 @@ Lua has built-in coroutine support. Coroutine itself is quite easy to understand
 	local co = coroutine.create(function ()
 		coroutine.yield(1)
 		coroutine.yield(2)
-		coroutine.yield(3)
+		return 3
 	end)
 
 
 
-When you create a coroutine, it will not automatically start. In fact, it will pause at `yield`, you have to `resume` it.
+When you create a coroutine, it will not automatically start. In fact, is is paused and it will pause at `yield`, you have to `resume` it.
 
 	coroutine.resume(co) -- true, 1
 	coroutine.resume(co) -- true, 2
